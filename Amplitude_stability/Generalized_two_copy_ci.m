@@ -51,7 +51,7 @@ end
 psi = pure_state_density(rand(1, 2*d^2));
 rho = TrX(psi'*psi, 2, dim);
 
-disp(compute_two_copies_vs_ci(V_2,rho))
+
 
 
 % now look for coherent information of two copies

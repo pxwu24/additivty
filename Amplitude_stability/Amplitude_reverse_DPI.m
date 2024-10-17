@@ -17,9 +17,9 @@ function f = generate_two_density(params, mode)
     rho2 = TrX(psi2'*psi2,2,[sqrt(r),sqrt(r)]);
     switch mode
         case 1
-            f{1} = rho1;
+            f = rho1;
         case 2
-            f{1} = rho2;
+            f = rho2;
     end
 end
 
@@ -52,25 +52,53 @@ function f = relative_entropy_amplitude(gamma,rho,sigma)
     sigma_B = TrX(sigma_BE,2,[2,2]);
     f = quantum_relative_entropy(rho_B, sigma_B);
 end
+
+%% 
 % dimension of input is d=2
 d = 2;
-% gamma is the parameter of AD channels
-gamma_1 = 0.1;
-gamma_2 = 0;
-M = 10; % # number of optimizations 
+M = 50; % # number of optimizations 
+res = zeros(1,M); % store the maximation for each random round
 % Set optimization options
 opt = optimoptions('fminunc','disp','none');
 opt_ps = optimoptions('particleswarm','UseParallel',true,'Display','none');
 
-disp('Computing the inverse contraction coefficient of amplitute damping channel')
-    res = zeros(1,M);
-    for m=1:M
-        obj = @(x) relative_entropy_amplitude(gamma_1,generate_two_density(x,1),generate_two_density(x,2))/relative_entropy_amplitude(gamma_2,generate_two_density(x,1),generate_two_density(x,2));
-        x0 = rand(1,4*(2*d)^2);
-        % Perform the optimization
-        [optimalParams, fval] = fminunc(obj,x0,opt);
-        res(m) = fval;
+% dimension of input is d=2
+d = 2;
+M = 50; % # number of optimizations 
+res = zeros(1,M); % store the maximation for each random round
+resolution = 101;
+% Define the grid for gamma_1 and gamma_2
+gamma_1 = linspace(0, 1, resolution);
+gamma_2 = linspace(0, 1, resolution);
+[Gamma1, Gamma2] = meshgrid(gamma_1, gamma_2);
+
+disp(gamma_1)
+%% 
+
+% Preallocate the matrix to store the expansion values
+expansion = zeros(size(Gamma1));
+
+% Loop through the grid and find the maximum for each pair (gamma_1,gamma_2)
+for i = 1:length(gamma_1) 
+    for j = 1:length(gamma_2)
+    % Apply the additional restriction gamma_1 > gamma_2
+        if (Gamma1(i,j)> Gamma2(i,j)) && (Gamma2(i,j) > 0) && (Gamma1(i,j) < 1)
+            disp(['Computing the inverse contraction coefficient of amplitute damping channel', ' with parameter=', num2str(Gamma1(i,j)), ',', num2str(Gamma2(i,j))])
+            res = zeros(1,M);
+            for m=1:M
+               obj = @(x) relative_entropy_amplitude(Gamma1(i,j),generate_two_density(x,1),generate_two_density(x,2))/relative_entropy_amplitude(Gamma2(i,j),generate_two_density(x,1),generate_two_density(x,2));
+               x0 = rand(1,4*d*d);
+               % Perform the optimization
+               [optimalParams, fval] = fminunc(obj,x0,opt);
+               res(m)= fval;
+            end
+            expansion(i,j) = min(res);
+            disp(['inverse contraction coefficient of amplitude damping channels= ', num2str(expansion(i,j))])
+        elseif (Gamma1(i,j)<= Gamma2(i,j))
+                 expansion(i,j) = 1;
+        else
+                 expansion(i,j) = 0;
+        end
     end
+end
 
-
-disp(['inverse contraction coefficient of amplitude damping channels= ', num2str(min(res))])

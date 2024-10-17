@@ -30,38 +30,3 @@ function f = compute_advantage(gamma,d,rho)
     f2 = real(VNent(sigma_VB)-VNent(sigma_VE));
     f = f1 - f2;
 end
-% dimension of ancillary system
-d = 2;
-psi = pure_state_density(rand(1, 2*(2*d)^2));
-rho_AV = TrX(psi'*psi, 2, [2*d,2*d]);
-
-M = 10; % # number of optimizations 
-% Set optimization options
-opt = optimoptions('fminunc','disp','none');
-opt_ps = optimoptions('particleswarm','UseParallel',true,'Display','none');
-
-disp('Computing the minimum ratio of advantange of two amplitude damping channels')
-    res = zeros(1,M);
-    for m=1:M
-        obj = @(x) compute_advantage(0.21,d,TrX(pure_state_density(x)'*pure_state_density(x), 2, [2*d,2*d]))/compute_advantage(0.2,d,TrX(pure_state_density(x)'*pure_state_density(x), 2, [2*d,2*d]));
-        x0 = rand(1,2*(2*d)^2);
-        % Perform the optimization
-        [optimalParams, fval] = fminunc(obj,x0,opt);
-
-        % Extract optimized real and imaginary parts
-        optimalRealPart = optimalParams(1:(2*d)^2);
-        optimalImagPart = optimalParams((2*d)^2+1:2*(2*d)^2);
-
-        % Construct the optimized complex state vector
-        optimalPsi = complex(optimalRealPart, optimalImagPart);
-
-        % Normalize the optimized state vector
-        optimalPsi = optimalPsi / norm(optimalPsi);
-
-        % Desired density:
-        %res_state(m)= TrX(optimalPsi'*optimalPsi,2,[d,d])
-        res(m) = fval;
-    end
-
-
-disp(['minimum ratio of advantange of two amplitude damping channels= ', num2str(min(res))])
